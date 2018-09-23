@@ -30,3 +30,6 @@ docker build -t $full_package_name .
 docker tag $full_package_name $full_package_name:$version
 docker push $full_package_name
 docker push $full_package_name:$version
+
+git tag -a $version -m "$version"
+git push origin tag $version
