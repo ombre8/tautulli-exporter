@@ -9,7 +9,7 @@ fi
 
 rm .build/*
 
-creator_name="tubaguy50035"
+creator_name="nwalke"
 package_name="tautulli_exporter"
 full_package_name="$creator_name/$package_name"
 
