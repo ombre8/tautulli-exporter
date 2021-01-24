@@ -7,7 +7,7 @@ For original license information see that project [here](https://github.com/prom
 ## Using the exporter
 I recommend running this in a Docker container.  Like this:
 ```
-docker run -e "TAUTULLI_API_KEY=yourapikey" -e "TAUTULLI_URI=http://127.0.0.1:8181" tubaguy50035/tautulli_exporter
+docker run -e "TAUTULLI_API_KEY=yourapikey" -e "TAUTULLI_URI=http://127.0.0.1:8181" nwalke/tautulli_exporter
 ```
 Note that you won't want to set the `SERVE_PORT` environment variable if running with Docker.  You'll just map it to a different local port if you need to like `9999:9487`.
 
