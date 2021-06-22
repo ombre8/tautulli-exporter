@@ -26,8 +26,9 @@ const (
 )
 
 var (
-	streamLabelNames    = []string{"stream"}
-	bandwidthLabelNames = []string{"bandwidth"}
+	streamLabelNames     = []string{"stream"}
+	bandwidthLabelNames  = []string{"bandwidth"}
+	ratingkeysLabelNames = []string{"ratingkey"}
 )
 
 func newStreamMetric(metricName string, docString string, constLabels prometheus.Labels) *prometheus.GaugeVec {
@@ -54,6 +55,18 @@ func newBandwidthMetric(metricName string, docString string, constLabels prometh
 	)
 }
 
+func newRatingKeysMetric(metricName string, docString string, constLabels prometheus.Labels) *prometheus.GaugeVec {
+	return prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace:   namespace,
+			Name:        "ratingkey_" + metricName,
+			Help:        docString,
+			ConstLabels: constLabels,
+		},
+		ratingkeysLabelNames,
+	)
+}
+
 type metrics map[int]*prometheus.GaugeVec
 
 func (m metrics) String() string {
@@ -70,11 +83,12 @@ func (m metrics) String() string {
 }
 
 type config struct {
-	TautulliApiKey    string        `env:"TAUTULLI_API_KEY"`
-	TautulliScrapeUri string        `env:"TAUTULLI_URI" envDefault:"http://127.0.0.1:8181"`
-	TautulliSslVerify bool          `env:"TAUTULLI_SSL_VERIFY" envDefault:"false"`
-	TautulliTimeout   time.Duration `env:"TAUTULLI_TIMEOUT" envDefault:"5s"`
-	ServePort         string        `env:"SERVE_PORT" envDefault:"9487"`
+	TautulliApiKey     string        `env:"TAUTULLI_API_KEY"`
+	TautulliScrapeUri  string        `env:"TAUTULLI_URI" envDefault:"http://127.0.0.1:8181"`
+	TautulliSslVerify  bool          `env:"TAUTULLI_SSL_VERIFY" envDefault:"false"`
+	TautulliTimeout    time.Duration `env:"TAUTULLI_TIMEOUT" envDefault:"5s"`
+	TautulliRatingKeys string        `env:"TAUTULLI_RATING_KEYS" envDefault:""`
+	ServePort          string        `env:"SERVE_PORT" envDefault:"9487"`
 }
 
 type Exporter struct {
@@ -84,7 +98,7 @@ type Exporter struct {
 
 	up, streamTotal, streamTranscode, streamDirectPlay, streamDirectStream, bandwidthTotal, bandwidthLan, bandwidthWan prometheus.Gauge
 	totalScrapes                                                                                                       prometheus.Counter
-	streamMetrics, bandwidthMetrics                                                                                    map[string]*prometheus.GaugeVec
+	streamMetrics, bandwidthMetrics, ratingkeysMetrics                                                                 map[string]*prometheus.GaugeVec
 }
 
 var (
