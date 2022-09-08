@@ -96,9 +96,9 @@ type Exporter struct {
 	mutex sync.RWMutex
 	fetch func() (io.ReadCloser, error)
 
-	up, streamTotal, streamTranscode, streamDirectPlay, streamDirectStream, bandwidthTotal, bandwidthLan, bandwidthWan prometheus.Gauge
-	totalScrapes                                                                                                       prometheus.Counter
-	streamMetrics, bandwidthMetrics, ratingkeysMetrics                                                                 map[string]*prometheus.GaugeVec
+	up, streamTotal, streamTranscode, streamDirectPlay, streamDirectStream, bandwidthTotal, bandwidthLan, bandwidthWan, ratingkeysMetrics prometheus.Gauge
+	totalScrapes                                                                                                                          prometheus.Counter
+	streamMetrics, bandwidthMetrics                                                                                                       map[string]*prometheus.GaugeVec
 }
 
 var (
@@ -156,6 +156,11 @@ func NewExporter(uri string, sslVerify bool, timeout time.Duration) (*Exporter, 
 			Name:      "bandwidth_wan",
 			Help:      "WAN bandwidth utilized.",
 		}),
+		ratingkeysMetrics: prometheus.NewGauge(prometheus.GaugeOpts{
+			Namespace: namespace,
+			Name:      "ratingkey",
+			Help:      "bla.",
+		}),
 	}, nil
 }
 
@@ -169,6 +174,7 @@ func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
 	ch <- e.bandwidthTotal.Desc()
 	ch <- e.bandwidthLan.Desc()
 	ch <- e.bandwidthWan.Desc()
+	ch <- e.ratingkeysMetrics.Desc()
 }
 
 // Implements prometheus.Collector.
@@ -189,6 +195,7 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 	ch <- e.bandwidthTotal
 	ch <- e.bandwidthLan
 	ch <- e.bandwidthWan
+	ch <- e.ratingkeysMetrics
 }
 
 // Fetches stats from Tautulli for later processing
@@ -234,6 +241,8 @@ func (e *Exporter) scrape() {
 
 	data := gjson.GetBytes(buf.Bytes(), "response.data")
 
+	log.Println(data)
+
 	e.streamTotal.Set(data.Get("stream_count").Float())
 	e.streamTranscode.Set(data.Get("stream_count_transcode").Float())
 	e.streamDirectPlay.Set(data.Get("stream_count_direct_play").Float())
@@ -242,6 +251,7 @@ func (e *Exporter) scrape() {
 	e.bandwidthTotal.Set(data.Get("total_bandwidth").Float())
 	e.bandwidthLan.Set(data.Get("lan_bandwidth").Float())
 	e.bandwidthWan.Set(data.Get("wan_bandwidth").Float())
+	e.ratingkeysMetrics.Set(data.Get("children_count").Float())
 
 }
 
@@ -254,6 +264,7 @@ func (e *Exporter) resetMetrics() {
 	e.bandwidthTotal.Set(0)
 	e.bandwidthLan.Set(0)
 	e.bandwidthWan.Set(0)
+	e.ratingkeysMetrics.Set(0)
 }
 
 func main() {
@@ -277,6 +288,7 @@ func main() {
 	log.Println("Tautulli SSL verify:", strconv.FormatBool(cfg.TautulliSslVerify))
 	log.Println("Tautulli Timeout:", cfg.TautulliTimeout)
 	log.Println("Tautulli API key:", cfg.TautulliApiKey)
+	log.Println("Tautulli Rating Key:", cfg.TautulliRatingKeys)
 
 	u, err := url.Parse(cfg.TautulliScrapeUri + "/api/v2")
 	if err != nil {
@@ -285,7 +297,8 @@ func main() {
 
 	q := u.Query()
 	q.Set("apikey", cfg.TautulliApiKey)
-	q.Set("cmd", "get_activity")
+	q.Set("cmd", "get_metadata")
+	q.Set("rating_key", cfg.TautulliRatingKeys)
 	u.RawQuery = q.Encode()
 
 	exporter, err := NewExporter(u.String(), cfg.TautulliSslVerify, cfg.TautulliTimeout)
